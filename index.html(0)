@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة متابعة التمويل</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f0f2f5; padding:10px; }
+.card { background:#fff; padding:15px; border-radius:15px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+input, button { padding:8px; border-radius:10px; border:1px solid #ccc; font-size:14px; }
+button { cursor:pointer; background:#000; color:#fff; border:none; }
+.status { display:inline-block; padding:5px 10px; border-radius:10px; font-size:12px; color:#fff; }
+.status.new { background:#666; }
+.status.review { background:#f0ad4e; }
+.status.approved { background:#28a745; }
+.status.funding { background:#007bff; }
+.status.completed { background:#28a745; }
+.status.rejected { background:#dc3545; }
+</style>
+</head>
+<body>
+
+<h2>منصة متابعة التمويل</h2>
+
+<div class="card" id="trackCard">
+  <h3>تتبع الطلب</h3>
+  <input id="trackId" placeholder="رقم الطلب"><br><br>
+  <input id="trackPin" placeholder="الرقم السري (PIN)"><br><br>
+  <button onclick="trackRequest()">بحث</button>
+  <div id="trackResult" style="margin-top:10px;"></div>
+</div>
+
+<div class="card" id="adminCard">
+  <h3>لوحة الإدارة</h3>
+  <input id="adminId" placeholder="رقم الطلب"><br><br>
+  <input id="adminPin" placeholder="PIN"><br><br>
+  <input id="adminName" placeholder="اسم العميل"><br><br>
+  <input id="adminPhone" placeholder="الجوال"><br><br>
+  <input id="adminAmount" placeholder="قيمة التمويل"><br><br>
+  <input id="adminPurpose" placeholder="الغرض"><br><br>
+  <select id="adminStatus">
+    <option value="new">جديد</option>
+    <option value="review">تحت المراجعة</option>
+    <option value="approved">موافقة</option>
+    <option value="funding">جاري الصرف</option>
+    <option value="completed">مكتمل</option>
+    <option value="rejected">مرفوض</option>
+  </select><br><br>
+  <button onclick="saveRequest()">حفظ / تحديث الطلب</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDl3G5ODo8--J8iw2HTZ7YrnxPk4gnj7zA",
+    authDomain: "jdhdhhd-3eb7f.firebaseapp.com",
+    projectId: "jdhdhhd-3eb7f",
+    storageBucket: "jdhdhhd-3eb7f.appspot.com",
+    messagingSenderId: "613046695940",
+    appId: "1:613046695940:web:066bd23677d17ed23ddd51",
+    measurementId: "G-7K968Q59M5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function saveRequest() {
+    const id = document.getElementById('adminId').value;
+    const pin = document.getElementById('adminPin').value;
+    const name = document.getElementById('adminName').value;
+    const phone = document.getElementById('adminPhone').value;
+    const amount = document.getElementById('adminAmount').value;
+    const purpose = document.getElementById('adminPurpose').value;
+    const status = document.getElementById('adminStatus').value;
+
+    if(!id || !pin || !name){ alert("املأ الحقول المطلوبة"); return; }
+
+    await setDoc(doc(db, "requests", id), {
+      pin, name, phone, amount, purpose, status, createdAt: serverTimestamp()
+    });
+
+    alert("تم حفظ الطلب!");
+  }
+
+  async function trackRequest() {
+    const id = document.getElementById('trackId').value;
+    const pin = document.getElementById('trackPin').value;
+    if(!id || !pin){ alert("أدخل رقم الطلب والـPIN"); return; }
+
+    const docRef = doc(db, "requests", id);
+    const docSnap = await getDoc(docRef);
+    const resDiv = document.getElementById('trackResult');
+
+    if(!docSnap.exists()){ resDiv.innerHTML="لم يتم العثور على الطلب"; return; }
+
+    const data = docSnap.data();
+    if(data.pin !== pin){ resDiv.innerHTML="الرقم السري غير صحيح"; return; }
+
+    resDiv.innerHTML = `
+      <b>اسم العميل:</b> ${data.name}<br>
+      <b>الجوال:</b> ${data.phone}<br>
+      <b>قيمة التمويل:</b> ${data.amount}<br>
+      <b>الغرض:</b> ${data.purpose}<br>
+      <b>الحالة:</b> <span class="status ${data.status}">${data.status}</span>
+    `;
+  }
+</script>
+
+</body>
+</html>
